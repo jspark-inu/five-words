@@ -21,8 +21,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build # 시험 중 하나(빌드 결과물 검사)가 dist/index.html을 읽으므로 먼저 만든다
       - run: npm test
-      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
