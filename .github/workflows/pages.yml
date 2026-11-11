@@ -22,7 +22,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build # 시험 중 하나(빌드 결과물 검사)가 dist/index.html을 읽으므로 먼저 만든다
-      - run: npm test
+      # 가상 학생 시험이 무거워서, 작은 GitHub 컴퓨터에서는 파일을 하나씩 돌린다(동시에 돌리면 시험 도구의 연락이 시간 초과로 끊긴다).
+      - run: npx vitest run --no-file-parallelism
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
