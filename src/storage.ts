@@ -1,5 +1,6 @@
 import type { BirthInput } from './chart/chart'
 import { WORDS } from './content/words'
+import { COVER, QUESTIONS } from './quiz/funnel/engine'
 
 export type ContextNoteData = { a: string; b: string; usual: string | null; people: string | null }
 /**
@@ -111,12 +112,14 @@ export function loadRun(): Run | null {
     if (r.stage !== 'pick' && r.stage !== 'far' && r.stage !== 'funnel' && r.stage !== 'final') return null
     if (r.final !== undefined && !isWordIds(r.final, 10)) return null
     if (!isWordIds(r.order, 40) || !isWordIds(r.picked, 40) || !isWordIds(r.far, 40) || !isStrings(r.answers, 60)) return null
+    // 문항 수가 다른 때(2026-11-12 전 60문항) 저장한 값: 두 방식에서 똑같은 앞 COVER개 답만 이어 쓰고 남은 문항부터 다시 묻는다.
+    if (r.total !== QUESTIONS && r.answers.length > COVER) return { stage: 'funnel', order: r.order, picked: r.picked, far: r.far, answers: r.answers.slice(0, COVER) }
     return { stage: r.stage, order: r.order, picked: r.picked, far: r.far, answers: r.answers, ...(r.final ? { final: r.final } : {}) }
   } catch { return null }
 }
 
 export function saveRun(run: Run): void {
-  try { localStorage.setItem(RUN_KEY, JSON.stringify(run)) } catch { /* 이어하기 안 됨 */ }
+  try { localStorage.setItem(RUN_KEY, JSON.stringify({ ...run, total: QUESTIONS })) } catch { /* 이어하기 안 됨 */ }
 }
 
 export function clearRun(): void {

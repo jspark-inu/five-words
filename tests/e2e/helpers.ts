@@ -42,7 +42,7 @@ export async function finishFinal(page: Page, picker?: (rowIds: string[]) => str
   return on.length + chosen.length + 1
 }
 
-/** 60개의 둘 중 고르기에 위 카드의 "조금 더"를 누르며 끝까지 간다(choose가 true를 돌려주면 그 문항은 직접 답한 것이다). 누른 횟수를 돌려준다. */
+/** 30개의 둘 중 고르기에 위 카드의 "조금 더"를 누르며 끝까지 간다(choose가 true를 돌려주면 그 문항은 직접 답한 것이다). 누른 횟수를 돌려준다. */
 export async function answerAll(page: Page, choose?: (text: string) => Promise<boolean>, picker?: (rowIds: string[]) => string[]) {
   let n = 0
   for (let guard = 0; guard < 80; guard++) {

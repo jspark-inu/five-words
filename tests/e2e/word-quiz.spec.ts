@@ -24,7 +24,7 @@ test('시작 화면에는 탭이 없고 소개와 시작하기만 있으며, 시
   await expect(page.getByRole('tab')).toHaveCount(0)
   await expect(page.getByText('문장으로 고르기')).toHaveCount(0)
   await expect(page.getByText('단어로 고르기')).toHaveCount(0)
-  await expect(page.locator('.intro .meta')).toContainText('10분 안팎')
+  await expect(page.locator('.intro .meta')).toContainText('5분 안팎')
   await page.getByRole('button', { name: '시작하기' }).click()
   await expect(page.getByRole('heading', { name: '나와 닮은 단어를 8~15개 고르세요' })).toBeVisible()
   await expect(page.getByRole('tab')).toHaveCount(0)
@@ -235,7 +235,7 @@ const cardWords = async (page: Page) => {
 test('둘 중 고르기는 행동 문장 카드 두 장이 위아래로 놓이고 단어 이름은 보이지 않으며 둘 다 맞아요·둘 다 아니에요가 있다', async ({ page }) => {
   await openWordTab(page)
   await runUntilFunnel(page)
-  await expect(page.locator('.step-text')).toHaveText('2단계 / 2단계 · 둘 중 고르기 1 / 60')
+  await expect(page.locator('.step-text')).toHaveText('2단계 / 2단계 · 둘 중 고르기 1 / 30')
   await expect(page.getByRole('heading', { name: '둘 중 어느 쪽이 더 나 같나요?' })).toBeVisible()
   await expect(page.locator('.sub')).toHaveText('둘 다 맞아도 더 맞는 쪽을 고르세요. 되고 싶은 나 말고 평소 실제로 하는 쪽으로요.')
   const cards = page.locator('.pair-card')
@@ -285,9 +285,9 @@ test('끝까지: 보고서에 다섯 단어, 다음 두 단어, 먼 단어 3개�
   await openWordTab(page)
   const taps = await runWordQuiz(page, 10)
   console.log(`검사 전체 탭 수(10개 고름): ${taps}`)
-  // 근거: 단어 10개 + 다음 1 + 먼 단어 3개 + 다음 1 + 60문항(문항마다 한 번) + 마지막 확인은 미리 눌려 있어 다음 1 = 76.
-  // 문항 수가 고정이라 탭 수도 고정이다. 고른 단어 수 8~15에 따라 8~15가 달라져 범위는 74~81이다.
-  expect(taps).toBe(76)
+  // 근거: 단어 10개 + 다음 1 + 먼 단어 3개 + 다음 1 + 30문항(문항마다 한 번) + 마지막 확인은 미리 눌려 있어 다음 1 = 46.
+  // 문항 수가 고정이라 탭 수도 고정이다. 고른 단어 수 8~15에 따라 8~15가 달라져 범위는 44~51이다.
+  expect(taps).toBe(46)
   await expect(page.getByRole('heading', { name: '태어난 날을 알려 주세요' })).toBeVisible()
   expect(await readRun(page)).not.toBeNull() // 결과를 저장하기 전(생년월일 입력 중)에는 이어하기 상태가 남는다
   await page.reload()
@@ -331,7 +331,7 @@ test('진행 중에 새로고침하면 시작 화면에 이어서 하기와 처�
   const idRe = /^[a-z]+$/
   for (const id of [...run.order, ...run.picked, ...run.far]) expect(id).toMatch(idRe)
   for (const a of run.answers) expect(a).toMatch(/^(a2|a|b|b2|both|none)$/)
-  expect(Object.keys(run).sort()).toEqual(['answers', 'far', 'order', 'picked', 'stage'])
+  expect(Object.keys(run).sort()).toEqual(['answers', 'far', 'order', 'picked', 'stage', 'total'])
   await page.reload()
   await expect(page.getByRole('button', { name: '이어서 하기' })).toBeVisible()
   await expect(page.getByRole('button', { name: '처음부터' })).toBeVisible()
@@ -392,7 +392,7 @@ test('1단계에서 놓친 단어도 답에서 계속 이기면 다섯 단어에
     await page.locator(at === 1 ? BOTTOM : TOP).click()
     n++
   }
-  expect(n).toBe(60)
+  expect(n).toBe(30)
   await expect(page.locator('.step-text')).toContainText('마지막 확인')
   await expect(page.locator('.narrowing')).toContainText('처음엔 안 골랐지만 답에서 나온 단어: ')
   expect(await page.locator('.narrowing').innerText()).toContain('성취')
@@ -411,6 +411,25 @@ function record(context: BrowserContext) {
   context.on('request', r => reqs.push({ url: r.url(), method: r.method(), body: r.postData() }))
   return reqs
 }
+
+test('60문항 때 하던 학생: 이어서 하면 앞 17개 답은 남고 18 / 30번부터 묻는다', async ({ page }) => {
+  await openWordTab(page)
+  await runUntilFunnel(page)
+  await page.waitForTimeout(260)
+  await page.locator(TOP).click()
+  await page.waitForTimeout(300)
+  // 예전(60문항) 저장값처럼 만든다: 문항 수 표시(total)가 없고 답이 40개
+  await page.evaluate(k => { const r = JSON.parse(localStorage.getItem(k)!); delete r.total; r.answers = Array(40).fill('a'); localStorage.setItem(k, JSON.stringify(r)) }, RUN_KEY)
+  await page.reload()
+  await page.getByRole('button', { name: '이어서 하기' }).click()
+  await expect(page.locator('.step-text')).toHaveText('2단계 / 2단계 · 둘 중 고르기 18 / 30')
+  await page.waitForTimeout(260)
+  await page.locator(TOP).click()
+  await page.waitForTimeout(300)
+  const run = JSON.parse((await page.evaluate(k => localStorage.getItem(k), RUN_KEY))!)
+  expect(run.answers).toHaveLength(18)
+  expect(run.total).toBe(30)
+})
 
 test('질문 화면의 더블탭은 한 질문만 답한 것으로 센다', async ({ page }) => {
   await openWordTab(page)
@@ -444,7 +463,7 @@ test('320x568 작은 화면에서도 카드 두 장, 카드마다 훨씬 더·�
   }
 })
 
-/** 근거가 얇아지게 답한다: 60문항 모두 "둘 다 아니에요". */
+/** 근거가 얇아지게 답한다: 30문항 모두 "둘 다 아니에요". */
 async function answerThin(page: Page) {
   for (let guard = 0; guard < 80; guard++) {
     await page.waitForTimeout(210)
@@ -573,8 +592,8 @@ test('마지막 확인: 다시 누르면 빠지며 번호가 당겨지고, 이�
   await expect(badge(all[1]!)).toHaveText('1')
   await expect(count(page)).toHaveText('4 / 5')
   await page.getByRole('button', { name: '이전', exact: true }).click()
-  await expect(page.locator('.step-text')).toHaveText('2단계 / 2단계 · 둘 중 고르기 60 / 60')
-  expect((await readRun(page)).answers).toHaveLength(59) // 직전 답 하나만 지워진다
+  await expect(page.locator('.step-text')).toHaveText('2단계 / 2단계 · 둘 중 고르기 30 / 30')
+  expect((await readRun(page)).answers).toHaveLength(29) // 직전 답 하나만 지워진다
 })
 
 test('마지막 확인 첫 화면에 곧바로 누른 탭은 무시된다 (더블탭 방지)', async ({ page }) => {
@@ -584,7 +603,7 @@ test('마지막 확인 첫 화면에 곧바로 누른 탭은 무시된다 (더�
     const c = page.locator('.pair-card')
     if ((await c.count()) === 0) break
     await page.waitForTimeout(210)
-    const last = (await page.locator('.step-text').innerText()).endsWith('60 / 60')
+    const last = (await page.locator('.step-text').innerText()).endsWith('30 / 30')
     if (last) { await page.locator(TOP).dblclick(); break }
     await page.locator(TOP).click()
   }

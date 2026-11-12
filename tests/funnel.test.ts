@@ -31,8 +31,8 @@ function run(base: Omit<FunnelState, 'answers'>, respond: (step: FunnelStep, i: 
 /** wins에 든 단어가 나오면 늘 그 단어를 이기게, 둘 다 아니면 첫 번째를 고른다. */
 const favor = (wins: string[]) => (s: FunnelStep) => (wins.includes(s.a) && !wins.includes(s.b) ? 'a' : wins.includes(s.b) && !wins.includes(s.a) ? 'b' : 'a')
 
-describe('답으로 판정하는 60문항', () => {
-  test('어떤 답이든 정확히 60문항 뒤 null이고, 같은 입력이면 같은 문항·같은 결과다', () => {
+describe('답으로 판정하는 30문항', () => {
+  test('어떤 답이든 정확히 30문항 뒤 null이고, 같은 입력이면 같은 문항·같은 결과다', () => {
     const r = prng(1)
     const keys = ['a', 'b', 'both', 'none']
     const answers = Array.from({ length: QUESTIONS }, () => keys[Math.floor(r() * 4)]!)
@@ -48,25 +48,25 @@ describe('답으로 판정하는 60문항', () => {
 
   test('이어 계산한 문항과 처음부터 계산한 문항이 같다 (이전 버튼으로 답을 지워도 같은 문항)', () => {
     const { state, steps } = run(BASE, favor(ids.slice(0, 6)))
-    for (const n of [0, 1, 20, 34, 35, 47, 59]) {
+    for (const n of [0, 1, 10, 16, 17, 18, 24, 29]) {
       const part = { ...BASE, answers: state.answers.slice(0, n) }
       expect(nextStep(part)).toEqual(steps[n])
     }
-    expect(nextStep({ ...BASE, answers: state.answers.slice(0, 40) })).toEqual(steps[40]) // 59 뒤 다시 앞으로
+    expect(nextStep({ ...BASE, answers: state.answers.slice(0, 20) })).toEqual(steps[20]) // 29 뒤 다시 앞으로
   })
 
-  test('처음 34문항에서 34개 단어가 모두 정확히 두 번씩 나오고, 한 문항의 두 단어는 다르다', () => {
+  test('처음 17문항에서 34개 단어가 모두 정확히 한 번씩 나오고, 한 문항의 두 단어는 다르다', () => {
     for (const picked of [ids.slice(0, 8), ids.slice(5, 20), ids.slice(0, 15)]) {
       const { steps } = run({ picked, far: ids.slice(25, 28) }, () => 'a')
       const count = new Map<string, number>()
       for (const s of steps.slice(0, COVER)) { expect(s.a).not.toBe(s.b); for (const w of [s.a, s.b]) count.set(w, (count.get(w) ?? 0) + 1) }
       expect(count.size).toBe(34)
-      for (const [w, c] of count) expect(c, w).toBe(2)
+      for (const [w, c] of count) expect(c, w).toBe(1)
       for (const s of steps) expect(s.a).not.toBe(s.b)
     }
   })
 
-  test('처음 34문항에서 같은 짝이 두 바퀴에 반복되지 않는다', () => {
+  test('처음 17문항에서 같은 짝이 반복되지 않는다', () => {
     for (const seed of [1, 2, 3, 4, 5, 6]) {
       const r = prng(seed)
       const picked = ids.filter(() => r() < 0.4).slice(0, 12)
@@ -87,8 +87,15 @@ describe('답으로 판정하는 60문항', () => {
     expect(steps.map(s => s.index)).toEqual(Array.from({ length: QUESTIONS }, (_, i) => i + 1))
   })
 
+  test('문항 수는 30, 고루 보기는 17 (제가 정한 값, 2026-11-12 교수님 결정)', () => {
+    expect(QUESTIONS).toBe(30)
+    expect(COVER).toBe(17)
+  })
+
   test('1단계에서 안 고른 단어도 답에서 계속 이기면 다섯 단어에 들어온다 (개수 제한 없음)', () => {
-    const wins = unpicked.slice(0, 3)
+    // 30문항에서는 고루 보기가 한 번뿐이라, 한 번만 나와 이긴 단어는 다시 확인되지 못하고 빠질 수 있다(가상 학생 비교: 놓친 단어 찾기 42% → 24%).
+    // 여기서는 개수 제한이 없다는 것만 본다: 안 고른 단어 3개가 한꺼번에 들어오는 경우가 있다.
+    const wins = unpicked.slice(6, 9)
     const { state } = run(BASE, favor(wins))
     const top = resultOf(state).top
     for (const w of wins) expect(top, w).toContain(w)
@@ -104,13 +111,13 @@ describe('답으로 판정하는 60문항', () => {
     expect(resultOf(none.state).top).not.toContain(loser)
   })
 
-  test('고른 단어가 "둘 다 아니에요"를 받으면, 문항 35 이후 아직 다시 안 나왔을 때 다음 적응 문항에 그 단어가 나온다', () => {
-    // 처음 34문항 중 그 단어가 마지막으로 나온 문항에 none을 주면 그 뒤 다시 묻지 않는다
+  test('고른 단어가 "둘 다 아니에요"를 받으면, 문항 18 이후 아직 다시 안 나왔을 때 다음 적응 문항에 그 단어가 나온다', () => {
+    // 처음 17문항 중 그 단어가 나온 문항에 none을 주면 그 뒤 다시 묻지 않는다
     const probe = run(BASE, () => 'a').steps
     const target = BASE.picked[0]!
     const lastAt = probe.slice(0, COVER).map(s => s.a === target || s.b === target).lastIndexOf(true)
     const { steps } = run(BASE, (s, i) => (i === lastAt ? 'none' : i < COVER ? 'a' : 'b'))
-    // 앞 34문항은 답이 달라도 문항이 같다(답과 무관한 고루 보기)
+    // 앞 17문항은 답이 달라도 문항이 같다(답과 무관한 고루 보기)
     expect(steps.slice(0, COVER)).toEqual(probe.slice(0, COVER))
     const first = steps[COVER]!
     expect([first.a, first.b]).toContain(target)
@@ -149,7 +156,7 @@ describe('답으로 판정하는 60문항', () => {
     expect(gap('b2')).toBeLessThan(gap('b'))
     expect(gap('b')).toBeLessThan(0)
     expect(validAnswers({ ...base, answers: ['a2', 'b2', 'a', 'b', 'both', 'none', 'x', 'a'] })).toEqual(['a2', 'b2', 'a', 'b', 'both', 'none'])
-    // 60문항 끝까지 "훨씬 더"만 눌러도 정상으로 끝난다
+    // 30문항 끝까지 "훨씬 더"만 눌러도 정상으로 끝난다
     const { steps, state } = run(BASE, (_s, i) => (i % 2 ? 'a2' : 'b2'))
     expect(steps).toHaveLength(QUESTIONS)
     expect(resultOf(state).thin).toBe(false)
@@ -161,7 +168,7 @@ describe('답으로 판정하는 60문항', () => {
     const randomly = () => { const r = coin(); return r < 0.1 ? 'both' : r < 0.2 ? 'none' : r < 0.6 ? 'a' : 'b' }
     for (const respond of [() => 'a', () => 'b', favor(ids.slice(15, 20)), () => 'both', () => 'none', ...Array.from({ length: 40 }, () => randomly)]) {
       const { steps } = run(BASE, respond)
-      expect(steps).toHaveLength(60)
+      expect(steps).toHaveLength(QUESTIONS)
       const texts = steps.flatMap(s => [s.textA, s.textB])
       expect(new Set(texts).size).toBe(texts.length)
       const count = new Map<string, number>()
@@ -173,8 +180,8 @@ describe('답으로 판정하는 60문항', () => {
   test('thin: 전부 both/none이면 true, 전부 a/b면 false, 60%를 넘으면 true', () => {
     expect(resultOf(run(BASE, (_s, i) => (i % 2 ? 'both' : 'none')).state).thin).toBe(true)
     expect(resultOf(run(BASE, (_s, i) => (i % 2 ? 'a' : 'b')).state).thin).toBe(false)
-    expect(resultOf(run(BASE, (_s, i) => (i < 37 ? 'both' : 'a')).state).thin).toBe(true) // 37/60 > 60%
-    expect(resultOf(run(BASE, (_s, i) => (i < 36 ? 'both' : 'a')).state).thin).toBe(false) // 36/60 = 60%
+    expect(resultOf(run(BASE, (_s, i) => (i < 19 ? 'both' : 'a')).state).thin).toBe(true) // 19/30 > 60%
+    expect(resultOf(run(BASE, (_s, i) => (i < 18 ? 'both' : 'a')).state).thin).toBe(false) // 18/30 = 60%
   })
 
   test('결과는 서로 겹치지 않는 top 5, support 2, 먼 단어 그대로이고 영역 메모는 없다', () => {

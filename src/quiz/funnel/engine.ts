@@ -1,4 +1,4 @@
-// 답으로 판정하는 검사 엔진: 1단계에서 고른 단어(picked, far)는 출발점일 뿐이고, 60개의 "둘 중 어느 쪽이 더 나 같나요?" 답으로 점수를 정한다.
+// 답으로 판정하는 검사 엔진: 1단계에서 고른 단어(picked, far)는 출발점일 뿐이고, 30개의 "둘 중 어느 쪽이 더 나 같나요?" 답으로 점수를 정한다.
 // 순수 함수라 같은 입력이면 항상 같은 문항과 같은 결과다. 이전 버튼은 답 하나를 지우면 된다.
 // 알고리즘은 design/experiments/measured-test-20261109.ts(가상 학생으로 검증한 원형)를 그대로 옮긴 것이다.
 import { STATEMENTS } from '../../content/statements'
@@ -10,9 +10,13 @@ export const FAR_COUNT = 3
 /** 마지막 확인에 보여 줄 후보 수와 그중 고르는 수(다섯 단어). 다음 두 단어는 남은 후보 중 점수 순으로 엔진이 정한다. */
 export const FINAL_CANDIDATES = 8
 export const FINAL_PICK = 5
-/** 제가 정한 값: 문항은 60개. 처음 34개는 모든 단어를 두 번씩 고루 보고, 나머지 26개는 다섯 단어 경계에 몰아 묻는다. */
-export const QUESTIONS = 60
-export const COVER = 34
+/**
+ * 제가 정한 값: 문항은 30개. 처음 17개는 모든 단어를 한 번씩 고루 보고, 나머지 13개는 다섯 단어 경계에 몰아 묻는다.
+ * 2026-11-12 학생들이 문항이 많다고 해서 교수님 결정으로 60(고루 보기 34)에서 줄였다. 가상 학생 2000명 비교에서
+ * 다섯 중 맞힘이 3.46 → 3.02(스스로 고른 순서 그대로는 2.58)였다. 고루 보기를 34로 둔 채 자르는 것보다 17로 줄이는 쪽이 나았다.
+ */
+export const QUESTIONS = 30
+export const COVER = 17
 /** 제가 정한 값: 1단계 선택은 출발점 점수일 뿐이다. 고른 단어 +0.6, 먼 단어 -0.6, 사전 강도 1.0(답이 쌓이면 답이 이긴다). */
 export const PRIOR_PICKED = 0.6
 export const PRIOR_FAR = -0.6
@@ -87,12 +91,12 @@ function gamesOf(a: number, b: number, key: string): [number, number][] {
   return [[ANCHOR, a], [ANCHOR, b]]
 }
 
-/** 처음 34문항: 단어 34개를 한 바퀴에 한 번씩, 두 바퀴. 바퀴마다 결정적으로 섞어 둘씩 짝짓고, 앞 바퀴와 같은 짝이면 바로 다음 단어와 바꾼다. */
+/** 처음 COVER문항: 단어 34개를 한 바퀴에 한 번씩(17문항이면 한 바퀴). 바퀴마다 결정적으로 섞어 둘씩 짝짓고, 앞 바퀴와 같은 짝이면 바로 다음 단어와 바꾼다. */
 function coverPairs(seed: string): [number, number][] {
   const out: [number, number][] = []
   const seen = new Set<string>()
   const key = (x: number, y: number) => (x < y ? `${x}:${y}` : `${y}:${x}`)
-  for (let round = 0; round < 2; round++) {
+  for (let round = 0; round * (N / 2) < COVER; round++) {
     const order = IDS.map((_, i) => i).sort((p, q) => tieHash(`${seed}#${round}`, IDS[p]!) - tieHash(`${seed}#${round}`, IDS[q]!))
     for (let i = 0; i + 1 < N; i += 2) {
       if (!seen.has(key(order[i]!, order[i + 1]!))) continue
@@ -140,7 +144,7 @@ function start(state: FunnelState): Session {
   return s
 }
 
-/** 다음 문항을 정해 steps에 넣는다. 60개가 쌓였으면 아무것도 하지 않는다. */
+/** 다음 문항을 정해 steps에 넣는다. QUESTIONS개가 쌓였으면 아무것도 하지 않는다. */
 function plan(s: Session): void {
   const i = s.answers.length
   if (i >= QUESTIONS) return
@@ -149,7 +153,7 @@ function plan(s: Session): void {
   s.steps[i] = { kind: 'pair', a: IDS[a]!, b: IDS[b]!, textA: text(a), textB: text(b), index: i + 1, total: QUESTIONS }
 }
 
-/** 문항 35~60: 다섯 단어 경계(5위와 6위의 가운데)에 가깝고 덜 물어본 단어를, 점수가 비슷한 상대와 붙인다. */
+/** 문항 18~30: 다섯 단어 경계(5위와 6위의 가운데)에 가깝고 덜 물어본 단어를, 점수가 비슷한 상대와 붙인다. */
 function adaptive(s: Session, i: number): [number, number] {
   const th = thetaOf(s)
   const rank = IDS.map((_, k) => k).sort((p, q) => th[q]! - th[p]! || tieHash(`${s.seed}#${s.answers.join('')}#rank`, IDS[p]!) - tieHash(`${s.seed}#${s.answers.join('')}#rank`, IDS[q]!))
@@ -187,7 +191,7 @@ function apply(s: Session, key: string): void {
   plan(s)
 }
 
-/** 저장값이 깨진 경우를 위해 앞에서부터 유효한 답(6개 중 하나, 60개 이하)만 남긴다. */
+/** 저장값이 깨진 경우를 위해 앞에서부터 유효한 답(6개 중 하나, QUESTIONS개 이하)만 남긴다. */
 export function validAnswers(state: FunnelState): string[] {
   const out: string[] = []
   for (const k of state.answers) { if (out.length >= QUESTIONS || !KEYS.includes(k)) break; out.push(k) }
@@ -204,7 +208,7 @@ function session(state: FunnelState): Session {
   return s
 }
 
-/** 다음 문항. 60개를 모두 답했으면 null. */
+/** 다음 문항. 모두 답했으면 null. */
 export function nextStep(state: FunnelState): FunnelStep | null {
   const s = session(state)
   return s.steps[s.answers.length] ?? null

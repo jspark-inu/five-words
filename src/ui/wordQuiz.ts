@@ -14,7 +14,7 @@ const known = (ids: string[]) => ids.filter(id => WORD.has(id))
 type Pick = { stepText: string; title: string; sub: string; words: Word[]; min: number; max: number; initial: string[]; ordered?: boolean; guard?: boolean; note?: string; tag?: (id: string) => string | null }
 
 /**
- * 판정 화면. 1단계(단어 8~15개 고르기, 먼 단어 3개)는 출발점일 뿐이고, 2단계에서 60개의 "둘 중 어느 쪽이 더 나 같나요?"에 답해 점수를 정한 뒤 마지막 확인으로 끝난다.
+ * 판정 화면. 1단계(단어 8~15개 고르기, 먼 단어 3개)는 출발점일 뿐이고, 2단계에서 30개의 "둘 중 어느 쪽이 더 나 같나요?"에 답해 점수를 정한 뒤 마지막 확인으로 끝난다.
  * 시간 제한은 없고, 단계가 바뀌거나 답할 때마다 onSave로 진행 상태를 넘겨 새로고침해도 이어서 할 수 있다.
  */
 export function renderWordQuiz(root: HTMLElement, resume: Run | null, onFinish: (result: FunnelResult) => void, onSave: (run: Run) => void): void {
@@ -148,7 +148,7 @@ export function renderWordQuiz(root: HTMLElement, resume: Run | null, onFinish: 
     pickScreen({
       stepText: '마지막 확인',
       title: '답을 보고 다섯 단어를 정했어요',
-      sub: '1단계에서 고른 단어와 60개 답을 합쳐 점수 순서로 골라 두었어요. 맞으면 다음을 누르세요. 아닌 단어가 있으면 눌러서 빼고, 아래 단어 중에서 다시 누르면 바뀝니다. 번호가 순위예요.',
+      sub: '1단계에서 고른 단어와 30개 답을 합쳐 점수 순서로 골라 두었어요. 맞으면 다음을 누르세요. 아닌 단어가 있으면 눌러서 빼고, 아래 단어 중에서 다시 누르면 바뀝니다. 번호가 순위예요.',
       note,
       tag: id => (entered.includes(id) ? '처음엔 고르지 않았어요' : null),
       words: candidates.map(id => WORD.get(id)!), min: required, max: required, initial: run.final, ordered: true, guard: true,

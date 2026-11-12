@@ -122,7 +122,7 @@ test('진행 중 상태(Run)는 단어 id와 답변만 담고, 모양이 틀리�
   const run = { stage: 'final' as const, order: ['order', 'repair'], picked: ['order'], far: ['repair'], answers: ['a', 'both', 'B'], final: ['order'] }
   saveRun(run)
   expect(loadRun()).toEqual(run)
-  expect(Object.keys(JSON.parse(localStorage.getItem(RUN_KEY)!)).sort()).toEqual(['answers', 'far', 'final', 'order', 'picked', 'stage'])
+  expect(Object.keys(JSON.parse(localStorage.getItem(RUN_KEY)!)).sort()).toEqual(['answers', 'far', 'final', 'order', 'picked', 'stage', 'total'])
   localStorage.setItem(RUN_KEY, JSON.stringify({ ...run, stage: 'x' }))
   expect(loadRun()).toBeNull()
   localStorage.setItem(RUN_KEY, JSON.stringify({ ...run, answers: [1] }))
@@ -132,6 +132,24 @@ test('진행 중 상태(Run)는 단어 id와 답변만 담고, 모양이 틀리�
   saveRun(run)
   clearRun()
   expect(loadRun()).toBeNull()
+})
+
+test('60문항 때 저장한 진행 상태: 두 방식이 같은 앞 17개 답만 이어 쓰고, 마지막 확인 중이었어도 남은 문항부터 다시 한다', () => {
+  localStorage.clear()
+  const base = { order: ['order', 'repair'], picked: ['order'], far: ['repair'] }
+  const ans = (n: number) => Array.from({ length: n }, (_, i) => (i % 2 ? 'a' : 'b'))
+  // 예전 저장값에는 total이 없다
+  localStorage.setItem(RUN_KEY, JSON.stringify({ stage: 'final', ...base, answers: ans(60), final: ['order'] }))
+  expect(loadRun()).toEqual({ stage: 'funnel', ...base, answers: ans(17) })
+  localStorage.setItem(RUN_KEY, JSON.stringify({ stage: 'funnel', ...base, answers: ans(40) }))
+  expect(loadRun()).toEqual({ stage: 'funnel', ...base, answers: ans(17) })
+  // 17개 이하면 그대로 이어진다
+  localStorage.setItem(RUN_KEY, JSON.stringify({ stage: 'funnel', ...base, answers: ans(12) }))
+  expect(loadRun()).toEqual({ stage: 'funnel', ...base, answers: ans(12) })
+  // 30문항 방식으로 저장한 것은 손대지 않는다
+  saveRun({ stage: 'final', ...base, answers: ans(30), final: ['order'] })
+  expect(loadRun()).toEqual({ stage: 'final', ...base, answers: ans(30), final: ['order'] })
+  localStorage.clear()
 })
 
 test('지금 단어 목록에 없는 id가 든 저장값(결과·진행 상태)은 없는 것으로 본다', () => {
