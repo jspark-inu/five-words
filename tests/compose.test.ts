@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { composeReport } from '../src/report/compose'
 import type { Content, WordCopy } from '../src/content/types'
 import type { ChartFacts } from '../src/chart/chart'
+import { WORK } from '../src/content/word-work'
 import { measureChart, type ChartStrength, type Level } from '../src/chart/strength'
 
 const ids = ['a', 'b', 'c', 'd', 'e']
@@ -44,6 +45,7 @@ const top = ids.map(i => real[i]!)
 test('다섯 단어가 순서대로 맨 위에 온다', () => {
   const r = composeReport(top, chart(), content(), true)
   expect(r.words.map(w => w.explain)).toEqual(ids.map(i => `explain-${i}`))
+  expect(r.words.map(w => w.work)).toEqual(top.map(id => WORK[id])) // 일에서 이렇게 쓰여요
   expect(r.heard).toEqual(['heard-a', 'heard-b', 'heard-c', 'heard-d', 'heard-e'])
 })
 test('같은 입력은 같은 보고서', () => {

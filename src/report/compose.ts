@@ -9,10 +9,12 @@ import { buildPrompt } from './prompt'
 import { ELEMENT_CLASH_WORDS, ELEMENT_EXPERIMENT, ELEMENT_ORDER, elementClashNote } from '../content/assemble-copy'
 import { hasFinalConsonant } from './josa'
 import { pickMeetings, type Meeting, type MeetingItem, type MEntry } from './meetings'
+import { WORK } from '../content/word-work'
 
 export type { Meeting, MeetingItem }
 
-export type ReportWord = { ko: string; explain: string; overdo: string }
+/** work: 일에서 이렇게 쓰여요(content/word-work.ts). */
+export type ReportWord = { ko: string; explain: string; overdo: string; work: string }
 /** 화면에 보일 기둥: 한자(stem·branch)와 그 아래에 둘 한글 읽기. */
 export type PillarView = Pillar & { reading: string }
 export type Report = {
@@ -107,7 +109,7 @@ export function composeReport(top: string[], chart: ChartFacts, content: Content
   const words: ReportWord[] = top.map((id, i) => {
     const w = WORDS.find(x => x.id === id)!
     const c = (entries[i] as Entry).copy
-    return { ko: w.ko, explain: c.explain, overdo: c.overdo }
+    return { ko: w.ko, explain: c.explain, overdo: c.overdo, work: WORK[id] ?? '' }
   })
   const copies = entries.map(e => e.copy)
   const first = copies[0] as WordCopy

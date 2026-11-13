@@ -36,6 +36,9 @@ h2{font-family:var(--display);font-weight:400;font-size:29px;line-height:1.3;mar
 .card .rank{color:var(--fire);font-weight:900;margin-right:6px}
 .card p{margin:0}
 .card .side{display:block;margin-top:10px;font-size:15px;color:var(--mute)}
+.card .work{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:var(--paper);border-left:4px solid var(--flame);font-size:15px;line-height:1.6}
+.card .work b{display:block;margin-bottom:4px;color:var(--ink);font-size:14px}
+.worknote{margin:12px 0 0;font-size:14px;color:var(--mute)}
 .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 .pillar{background:#fff;border:1px solid var(--line);border-radius:12px;text-align:center;padding:10px 2px}
 .pillar b{display:block;font-family:var(--serif);font-size:28px;line-height:1.3}

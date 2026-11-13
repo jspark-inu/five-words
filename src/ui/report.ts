@@ -198,10 +198,12 @@ function wordsSection(r: Report): HTMLElement {
       c.meaning ? el('p', { class: 'meaning', text: c.meaning }) : null,
       el('p', { class: c.meaning ? 'wlead' : '', text: c.essence ?? w.explain }),
       el('span', { class: 'side', text: `과하면: ${w.overdo}` }),
+      w.work ? el('p', { class: 'work' }, el('b', { text: '일에서 이렇게 쓰여요' }), w.work) : null,
       detail)
   })
   return section('다섯 단어 하나씩', d.frames.wordsIntro ?? null,
     el('div', { class: 'cards' }, ...cards),
+    el('p', { class: 'worknote', text: '"일에서 이렇게 쓰여요"는 직업을 정해 주는 말이 아닙니다. 어떤 일을 하든 이 힘을 쓸 자리를 찾는 실마리로 보세요.' }),
     d.support.length > 0 ? el('h3', { class: 'subhead', text: '곁에서 받쳐 주는 단어' }) : null,
     d.support.length > 0 ? el('div', { class: 'stack' }, ...d.support.map(x => el('p', { class: 'term' }, el('b', { text: x.ko }), ` ${x.text}`))) : null)
 }

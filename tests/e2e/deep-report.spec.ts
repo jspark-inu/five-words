@@ -172,3 +172,19 @@ test('운세 칸 글자에 같은 끝맺음이 바로 이어 두 번 나오지 �
     expect(text).not.toMatch(/(\S{2,}[.!?])\s*\1/)
   }
 })
+
+test('5가지 강점 단어 탭: 단어 카드마다 펼치지 않아도 "일에서 이렇게 쓰여요"가 보이고, 직업을 정해 주는 말이 아니라는 안내가 한 번 있다', async ({ page }) => {
+  await seed(page, { top: ['order', 'inclusion', 'recognition', 'reflection', 'achievement'] })
+  await page.goto('./')
+  await openTab(page, '5가지 강점 단어')
+  const work = page.locator('.card .work')
+  await expect(work).toHaveCount(5)
+  for (let i = 0; i < 5; i++) {
+    await expect(work.nth(i)).toBeVisible()
+    await expect(work.nth(i)).toContainText('일에서 이렇게 쓰여요')
+    await expect(work.nth(i)).toContainText('이런 일에서 힘을 씁니다:')
+  }
+  await expect(work.first()).toContainText('회계·정산') // 질서
+  await expect(page.locator('.worknote')).toHaveCount(1)
+  await expect(page.locator('.worknote')).toContainText('직업을 정해 주는 말이 아닙니다')
+})
